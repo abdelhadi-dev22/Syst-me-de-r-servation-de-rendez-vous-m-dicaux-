@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مساعد مرضى - نظام تذكير الأدوية</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .medication-card {
+            transition: all 0.3s ease;
+        }
+        .medication-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .taken {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .missed {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .pending {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-capsule"></i> مساعد مرضى
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#dashboard">لوحة التحكم</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#medications">الأدوية</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#logs">السجلات</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="dashboard" class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-calendar-day"></i> جدول الأدوية اليومي</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="dailyMedicationsTable">
+                                <thead>
+                                    <tr>
+                                        <th>الدواء</th>
+                                        <th>الجرعة</th>
+                                        <th>الوقت</th>
+                                        <th>الحالة</th>
+                                        <th>الإجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- سيتم إضافة البيانات ديناميكياً -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-plus-circle"></i> إضافة دواء جديد</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="addMedicationForm">
+                            <div class="mb-3">
+                                <label for="medicationName" class="form-label">اسم الدواء</label>
+                                <input type="text" class="form-control" id="medicationName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="dosage" class="form-label">الجرعة</label>
+                                <input type="text" class="form-control" id="dosage" placeholder="مثال: 1 حبة" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="frequency" class="form-label">عدد المرات يومياً</label>
+                                <select class="form-select" id="frequency" required>
+                                    <option value="1">مرة واحدة</option>
+                                    <option value="2">مرتين</option>
+                                    <option value="3">ثلاث مرات</option>
+                                    <option value="4">أربع مرات</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="times" class="form-label">أوقات الجرعات</label>
+                                <div id="timesContainer">
+                                    <input type="time" class="form-control mb-2" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-check-circle"></i> إضافة الدواء
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="medications" class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-list-ul"></i> قائمة الأدوية</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="medicationsList">
+                            <!-- سيتم إضافة البطاقات ديناميكياً -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="logs" class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-journal-text"></i> سجل الالتزام بالأدوية</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="complianceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal لتأكيد أخذ الدواء -->
+    <div class="modal fade" id="confirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">تأكيد أخذ الدواء</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>هل تأكد من أنك أخذت الدواء <strong id="confirmMedicationName"></strong>؟</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-success" id="confirmTake">تأكيد</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // بيانات تجريبية - سيتم استبدالها ببيانات من قاعدة البيانات
+        let medications = [
+            { id: 1, name: 'أموكسيسيلين', dosage: '500 مجم', times: ['08:00', '14:00', '20:00'], taken: [false, false, false] },
+            { id: 2, name: 'إيبوبروفين', dosage: '200 مجم', times: ['09:00', '15:00'], taken: [false, false] }
+        ];
+
+        let logs = [
+            { date: '2023-10-01', medication: 'أموكسيسيلين', taken: true },
+            { date: '2023-10-01', medication: 'إيبوبروفين', taken: false },
+            // ... المزيد من السجلات
+        ];
+
+        function updateDailyTable() {
+            const tableBody = document.getElementById('dailyMedicationsTable').querySelector('tbody');
+            tableBody.innerHTML = '';
+
+            const today = new Date().toISOString().split('T')[0];
+
+            medications.forEach(med => {
+                med.times.forEach((time, index) => {
+                    const row = document.createElement('tr');
+                    const status = med.taken[index] ? 'taken' : 'pending';
+                    const statusText = med.taken[index] ? 'تم الأخذ' : 'في الانتظار';
+                    const statusClass = med.taken[index] ? 'text-success' : 'text-warning';
+
+                    row.innerHTML = `
+                        <td>${med.name}</td>
+                        <td>${med.dosage}</td>
+                        <td>${time}</td>
+                        <td><span class="badge bg-${med.taken[index] ? 'success' : 'warning'}">${statusText}</span></td>
+                        <td>
+                            ${!med.taken[index] ? `<button class="btn btn-sm btn-success take-med-btn" data-med-id="${med.id}" data-time-index="${index}">تأكيد الأخذ</button>` : ''}
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            });
+
+            // إضافة مستمعي الأحداث للأزرار
+            document.querySelectorAll('.take-med-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const medId = parseInt(this.dataset.medId);
+                    const timeIndex = parseInt(this.dataset.timeIndex);
+                    const med = medications.find(m => m.id === medId);
+                    document.getElementById('confirmMedicationName').textContent = med.name;
+                    document.getElementById('confirmTake').dataset.medId = medId;
+                    document.getElementById('confirmTake').dataset.timeIndex = timeIndex;
+                    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+                });
+            });
+        }
+
+        function updateMedicationsList() {
+            const container = document.getElementById('medicationsList');
+            container.innerHTML = '';
+
+            medications.forEach(med => {
+                const col = document.createElement('div');
+                col.className = 'col-md-6 mb-3';
+                col.innerHTML = `
+                    <div class="card medication-card">
+                        <div class="card-body">
+                            <h6 class="card-title">${med.name}</h6>
+                            <p class="card-text">الجرعة: ${med.dosage}</p>
+                            <p class="card-text">الأوقات: ${med.times.join(', ')}</p>
+                            <button class="btn btn-sm btn-outline-danger delete-med-btn" data-med-id="${med.id}">حذف</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(col);
+            });
+
+            // إضافة مستمعي الأحداث لأزرار الحذف
+            document.querySelectorAll('.delete-med-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const medId = parseInt(this.dataset.medId);
+                    medications = medications.filter(m => m.id !== medId);
+                    updateMedicationsList();
+                    updateDailyTable();
+                });
+            });
+        }
+
+        function updateComplianceChart() {
+            const ctx = document.getElementById('complianceChart').getContext('2d');
+            const complianceData = logs.reduce((acc, log) => {
+                if (!acc[log.date]) acc[log.date] = { total: 0, taken: 0 };
+                acc[log.date].total++;
+                if (log.taken) acc[log.date].taken++;
+                return acc;
+            }, {});
+
+            const labels = Object.keys(complianceData);
+            const data = labels.map(date => (complianceData[date].taken / complianceData[date].total) * 100);
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'نسبة الالتزام (%)',
+                        data: data,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // تحديث عدد حقول الأوقات بناءً على التكرار
+        document.getElementById('frequency').addEventListener('change', function() {
+            const frequency = parseInt(this.value);
+            const container = document.getElementById('timesContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < frequency; i++) {
+                const input = document.createElement('input');
+                input.type = 'time';
+                input.className = 'form-control mb-2';
+                input.required = true;
+                container.appendChild(input);
+            }
+        });
+
+        // إضافة دواء جديد
+        document.getElementById('addMedicationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('medicationName').value;
+            const dosage = document.getElementById('dosage').value;
+            const times = Array.from(document.querySelectorAll('#timesContainer input')).map(input => input.value);
+
+            const newMed = {
+                id: medications.length + 1,
+                name: name,
+                dosage: dosage,
+                times: times,
+                taken: new Array(times.length).fill(false)
+            };
+
+            medications.push(newMed);
+            updateMedicationsList();
+            updateDailyTable();
+            this.reset();
+            document.getElementById('frequency').dispatchEvent(new Event('change'));
+        });
+
+        // تأكيد أخذ الدواء
+        document.getElementById('confirmTake').addEventListener('click', function() {
+            const medId = parseInt(this.dataset.medId);
+            const timeIndex = parseInt(this.dataset.timeIndex);
+            const med = medications.find(m => m.id === medId);
+            med.taken[timeIndex] = true;
+
+            // إضافة إلى السجلات
+            logs.push({
+                date: new Date().toISOString().split('T')[0],
+                medication: med.name,
+                taken: true
+            });
+
+            updateDailyTable();
+            updateComplianceChart();
+            bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+        });
+
+        // طلب إذن الإشعارات
+        if ('Notification' in window) {
+            Notification.requestPermission();
+        }
+
+        // فحص التنبيهات كل دقيقة
+        setInterval(() => {
+            const now = new Date();
+            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+            medications.forEach(med => {
+                med.times.forEach((time, index) => {
+                    if (time === currentTime && !med.taken[index]) {
+                        if (Notification.permission === 'granted') {
+                            new Notification(`تذكير: ${med.name}`, {
+                                body: `حان وقت أخذ جرعة ${med.dosage}`,
+                                icon: 'https://via.placeholder.com/64x64?text=💊'
+                            });
+                        }
+                        // هنا يمكن إضافة إرسال بريد إلكتروني أو رسالة نصية
+                    }
+                });
+            });
+        }, 60000); // كل دقيقة
+
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDailyTable();
+            updateMedicationsList();
+            updateComplianceChart();
+            document.getElementById('frequency').dispatchEvent(new Event('change'));
+        });
+    </script>
+</body>
+</html>
